@@ -4,6 +4,7 @@ import (
 	"io"
 	"judo/configs"
 	"judo/internal/handlers/payload"
+	"judo/internal/user"
 	"judo/pkg/handlerset"
 	"judo/pkg/request"
 	"net/http"
@@ -11,11 +12,13 @@ import (
 
 type AuthHandler struct {
 	*configs.Config
+	*user.AuthService
 }
 
-func NewAuthHandler(cfg *configs.Config) *AuthHandler {
+func NewAuthHandler(cfg *configs.Config, user *user.AuthService) *AuthHandler {
 	return &AuthHandler{
-		Config: cfg,
+		Config:      cfg,
+		AuthService: user,
 	}
 }
 
@@ -29,6 +32,8 @@ func (h *AuthHandler) Register() http.HandlerFunc {
 		if err != nil {
 			return
 		}
+
+		h.AuthService.Register(reg.Email, reg.Password, reg.Username)
 
 		handlerset.HandlerSet(w, struct {
 			Email string `json:"email"`

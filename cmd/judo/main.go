@@ -3,7 +3,11 @@ package main
 import (
 	"judo/configs"
 	"judo/internal/handlers"
+	"judo/internal/link"
+	"judo/internal/user"
+	"judo/migrations"
 	"judo/pkg/db"
+	"judo/pkg/middleware"
 	"net/http"
 	"time"
 )
@@ -14,14 +18,36 @@ func init() {
 
 func main() {
 	cfg := configs.MustLoad()
-	_ = db.NewDB(cfg)
+
+	dbInstance := db.NewDB(cfg)
+
+	//repositories
+	linkRepository := link.NewLinkRepository(dbInstance)
+	userRepository := user.NewUserRepository(dbInstance)
+	//auth service
+	authService := user.NewAuthService(userRepository)
+
+	//migrations
+	migrations.RunMigrations(dbInstance.DB)
+
 	mux := http.NewServeMux()
-	handler := handlers.NewAuthHandler(cfg)
-	handlers.InitRouters(handler, mux)
+
+	//handlers
+	handlerAuth := handlers.NewAuthHandler(cfg, authService)
+	handlers.AuthRouter(handlerAuth, mux)
+
+	handlerLink := handlers.NewLinkHandler(link.LinkRepository{
+		DataBase: linkRepository.DataBase,
+	})
+	handlers.LinkRouter(handlerLink, mux)
+
+	stack := middleware.Chain(middleware.CORS,
+		middleware.Logging,
+	)
 
 	server := &http.Server{
 		Addr:           ":8080",
-		Handler:        mux,
+		Handler:        stack(mux),
 		WriteTimeout:   15 * time.Second,
 		ReadTimeout:    15 * time.Second,
 		MaxHeaderBytes: 1 << 20,

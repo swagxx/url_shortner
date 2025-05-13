@@ -11,12 +11,18 @@ type DB struct {
 }
 
 func NewDB(conf *configs.Config) *DB {
-	db, err := gorm.Open(postgres.Open(conf.DB.DSN), &gorm.Config{})
-	if err != nil {
-		panic(err)
-	}
+	db := OpenDB(conf)
 	return &DB{
 		db,
 	}
 
+}
+
+func OpenDB(conf *configs.Config) *gorm.DB {
+	db, err := gorm.Open(postgres.Open(conf.DB.DSN), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+
+	return db
 }
