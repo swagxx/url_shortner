@@ -1,2 +1,4 @@
 /postgres-data
 /.env
+/cmd/judo/.env
+docker-compose.yml

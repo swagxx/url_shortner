@@ -2,20 +2,20 @@ package validator
 
 import (
 	"errors"
-	"judo/internal/handlers/payload"
+	"judo/pkg/dto"
 	"regexp"
 )
 
 func ValidBody(data interface{}) error {
 	switch v := data.(type) {
-	case payload.LoginRequest:
+	case dto.LoginRequest:
 		if !isValidEmail(v.Email) {
 			return errors.New("invalid email")
 		}
 		if v.Password == "" {
 			return errors.New("empty password, required ")
 		}
-	case payload.RegisterRequest:
+	case dto.RegisterRequest:
 		if !isValidEmail(v.Email) {
 			return errors.New("invalid email")
 		}

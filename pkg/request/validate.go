@@ -1,20 +1,20 @@
 package request
 
 import (
-	payload2 "judo/internal/handlers/payload"
-	"judo/internal/link"
-	validator2 "judo/pkg/validator"
+	typesimpo "judo/internal/types"
+	"judo/pkg/dto"
+	"judo/pkg/validator"
 )
 
 func isValid[T any](payload T) error {
 	switch any(payload).(type) {
-	case payload2.LoginRequest:
-	case payload2.RegisterRequest:
-		if err := validator2.ValidBody(payload); err != nil {
+	case dto.LoginRequest:
+	case dto.RegisterRequest:
+		if err := validator.ValidBody(payload); err != nil {
 			return err
 		}
-	case link.LinkCreateRequest:
-		if err := validator2.ValidUrl(payload); err != nil {
+	case typesimpo.LinkCreateRequest:
+		if err := validator.ValidUrl(payload); err != nil {
 			return err
 		}
 	}

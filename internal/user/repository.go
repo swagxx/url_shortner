@@ -1,6 +1,9 @@
 package user
 
 import (
+	"errors"
+	"gorm.io/gorm"
+	typesimpo "judo/internal/types"
 	"judo/pkg/db"
 )
 
@@ -14,7 +17,7 @@ func NewUserRepository(dataBase *db.DB) *UserRepository {
 	}
 }
 
-func (ur *UserRepository) Create(user *User) (*User, error) {
+func (ur *UserRepository) Create(user *typesimpo.User) (*typesimpo.User, error) {
 	res := ur.DataBase.DB.Create(user)
 	if res.Error != nil {
 		return nil, res.Error
@@ -22,11 +25,11 @@ func (ur *UserRepository) Create(user *User) (*User, error) {
 	return user, nil
 }
 
-func (ur *UserRepository) Find(email string) (*User, error) {
-	var user User
-	res := ur.DataBase.DB.First(&user, "email = ?", email)
-	if res.Error != nil {
-		return nil, res.Error
+func (ur *UserRepository) Find(email string) (*typesimpo.User, error) {
+	var user typesimpo.User
+	err := ur.DataBase.DB.First(&user, "email = ?", email).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil
 	}
 	return &user, nil
 }

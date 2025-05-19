@@ -1,10 +1,9 @@
-package handlers
+package payload
 
 import (
-	"io"
 	"judo/configs"
-	"judo/internal/handlers/payload"
 	"judo/internal/user"
+	"judo/pkg/dto"
 	"judo/pkg/handlerset"
 	"judo/pkg/request"
 	"net/http"
@@ -28,19 +27,20 @@ func (h *AuthHandler) Register() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-		reg, err := request.HandleBody[payload.RegisterRequest](w, r)
+		reg, err := request.HandleBody[dto.RegisterRequest](w, r)
 		if err != nil {
 			return
 		}
 
-		h.AuthService.Register(reg.Email, reg.Password, reg.Username)
-
+		token, err := h.AuthService.Register(reg.Email, reg.Password, reg.Username)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		handlerset.HandlerSet(w, struct {
-			Email string `json:"email"`
-		}{
-			Email: reg.Email,
-		}, http.StatusCreated)
-		io.ReadAll(r.Body)
+			Token string `json:"token"`
+		}{Token: token}, http.StatusOK)
+
 	}
 }
 
@@ -51,15 +51,21 @@ func (h *AuthHandler) Login() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		log, err := request.HandleBody[payload.LoginRequest](w, r)
+		body, err := request.HandleBody[dto.LoginRequest](w, r)
 		if err != nil {
+			return
+		}
+
+		res, err := h.AuthService.Login(body.Email, body.Password)
+		if err != nil {
+			http.Error(w, "Login failed", http.StatusUnauthorized)
 			return
 		}
 
 		handlerset.HandlerSet(w, struct {
 			Token string `json:"token"`
 		}{
-			log.Password,
+			Token: res,
 		}, http.StatusOK)
 	}
 }

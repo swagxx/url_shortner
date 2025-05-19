@@ -2,15 +2,21 @@ package user
 
 import (
 	"errors"
+	"golang.org/x/crypto/bcrypt"
+	typesimpo "judo/internal/types"
+	"judo/pkg/di"
+	"judo/pkg/jwt"
 )
 
 type AuthService struct {
-	userRepo *UserRepository
+	userRepo di.IUserRepository
+	JWT      *jwt.JWT
 }
 
-func NewAuthService(repo *UserRepository) *AuthService {
+func NewAuthService(repo di.IUserRepository, j *jwt.JWT) *AuthService {
 	return &AuthService{
 		userRepo: repo,
+		JWT:      j,
 	}
 }
 
@@ -22,15 +28,38 @@ func (s *AuthService) Register(email, password, name string) (string, error) {
 	if exist != nil {
 		return "", errors.New(ErrUserExist)
 	}
-	tempUser := &User{
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	tempUser := &typesimpo.User{
+		Name:     name,
 		Email:    email,
-		Password: "",
-		Username: name,
+		Password: string(hashedPassword),
 	}
 	_, err = s.userRepo.Create(tempUser)
 
+	token, err := s.JWT.GenerateToken(jwt.JWTData{})
 	if err != nil {
 		return "", err
 	}
-	return tempUser.Email, nil
+	return token, nil
+}
+
+func (s *AuthService) Login(email, password string) (string, error) {
+	exits, err := s.userRepo.Find(email)
+	if err != nil {
+		return "", err
+	}
+	if exits == nil {
+		return "", errors.New(ErrUserNotFound)
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(exits.Password), []byte(password))
+	if err != nil {
+		return "", errors.New(ErrPasswordNotCorrect)
+	}
+	token, err := s.JWT.GenerateToken(jwt.JWTData{
+		Email: email,
+	})
+	if err != nil {
+		return "", err
+	}
+	return token, nil
 }

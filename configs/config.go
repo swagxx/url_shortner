@@ -33,7 +33,7 @@ func MustLoad() *Config {
 			DSN: dsn,
 		},
 		Auth: AuthConfig{
-			Secret: os.Getenv("TOKEN"),
+			Secret: os.Getenv("SECRET"),
 		},
 	}
 }

@@ -4,9 +4,14 @@ import "net/http"
 
 type WriteResponse struct {
 	http.ResponseWriter
-	StatusCode int
+	StatusCode  int
+	wroteHeader bool
 }
 
 func (w *WriteResponse) WriteHeader(code int) {
-	w.StatusCode = code
+	if !w.wroteHeader {
+		w.StatusCode = code
+		w.ResponseWriter.WriteHeader(code)
+		w.wroteHeader = true
+	}
 }

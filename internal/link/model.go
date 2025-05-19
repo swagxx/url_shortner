@@ -2,6 +2,7 @@ package link
 
 import (
 	"crypto/rand"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 	"math/big"
 )
@@ -12,8 +13,9 @@ const (
 
 type Link struct {
 	gorm.Model
-	URL  string `json:"url"`
-	Hash string `json:"hash" gorm:"uniqueIndex"`
+	URL   string `json:"url"`
+	Hash  string `json:"hash" gorm:"uniqueIndex"`
+	Stats []Stat `gorm:"constraint:OnUpdate:CASCADE, OnDelete:SET NULL;"`
 }
 
 func NewLink(url string) *Link {
@@ -35,4 +37,11 @@ func generateHash(n int) string {
 		b[i] = letters[idx.Int64()]
 	}
 	return string(b)
+}
+
+type Stat struct {
+	gorm.Model
+	LinkID uint           `json:"link_id"`
+	Clicks uint           `json:"click"`
+	Data   datatypes.Date `json:"data"`
 }

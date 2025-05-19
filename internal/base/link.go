@@ -1,8 +1,12 @@
-package handlers
+package base
 
 import (
 	"gorm.io/gorm"
+	"judo/configs"
 	"judo/internal/link"
+	typesimpo "judo/internal/types"
+	"judo/pkg/di"
+	"judo/pkg/event"
 	"judo/pkg/handlerset"
 	"judo/pkg/request"
 	"net/http"
@@ -10,18 +14,22 @@ import (
 )
 
 type LinkHandler struct {
-	LinkRepository *link.LinkRepository
+	LinkRepository di.ILinkRepository
+	EventBus       *event.EventBus
+	Config         *configs.Config
 }
 
-func NewLinkHandler(deps link.LinkRepository) *LinkHandler {
+func NewLinkHandler(deps link.LinkRepository, config *configs.Config, event *event.EventBus) *LinkHandler {
 	return &LinkHandler{
 		LinkRepository: &deps,
+		Config:         config,
+		EventBus:       event,
 	}
 }
 
 func (h *LinkHandler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := request.HandleBody[link.LinkCreateRequest](w, r)
+		body, err := request.HandleBody[typesimpo.LinkCreateRequest](w, r)
 		if err != nil {
 			return
 		}
@@ -53,16 +61,23 @@ func (h *LinkHandler) Read() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
+		go h.EventBus.Publish(event.Event{
+			Type: event.LinkVisitedEvent,
+			Data: link.ID,
+		})
+		handlerset.HandlerSet(w, link, http.StatusOK)
 		http.Redirect(w, r, link.URL, http.StatusTemporaryRedirect)
 	}
 }
 
 func (h *LinkHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		body, err := request.HandleBody[link.LinkUpdateRequest](w, r)
+
+		body, err := request.HandleBody[typesimpo.LinkUpdateRequest](w, r)
 		if err != nil {
 			return
 		}
+
 		idString := r.PathValue("id")
 		id, err := strconv.ParseUint(idString, 10, 32)
 		if err != nil {
@@ -78,6 +93,7 @@ func (h *LinkHandler) Update() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		handlerset.HandlerSet(w, link, http.StatusCreated)
 	}
 }
@@ -100,21 +116,26 @@ func (h *LinkHandler) Delete() http.HandlerFunc {
 
 func (h *LinkHandler) GetAll() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var allLinks []*link.LinksResponse
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, "invalid limit ", http.StatusBadRequest)
+			return
+		}
 
-		links, err := h.LinkRepository.GetAll()
+		offset, err := strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, "invalid offset ", http.StatusBadRequest)
+			return
+		}
+
+		result, count, err := h.LinkRepository.GetLinks(uint(limit), uint(offset))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		for _, l := range links {
-			allLinks = append(allLinks, &link.LinksResponse{
-				ID:   int(l.ID),
-				URL:  l.URL,
-				Hash: l.Hash,
-			})
-		}
-		handlerset.HandlerSet(w, allLinks, http.StatusOK)
-
+		handlerset.HandlerSet(w, typesimpo.AllLinksResponse{
+			Links: result,
+			Count: count,
+		}, http.StatusOK)
 	}
 }

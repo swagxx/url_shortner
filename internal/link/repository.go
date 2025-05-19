@@ -1,6 +1,7 @@
 package link
 
 import (
+	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 	"judo/pkg/db"
 )
@@ -59,11 +60,37 @@ func (repo *LinkRepository) FindById(id uint) error {
 	return nil
 }
 
-func (repo *LinkRepository) GetAll() ([]*Link, error) {
-	var links []*Link
-	result := repo.DataBase.DB.Find(&links)
-	if result.Error != nil {
-		return nil, result.Error
+func (repo *LinkRepository) CountLinks() (int64, error) {
+	var count int64
+	err := repo.DataBase.DB.Model(&Link{}).
+		Where("deleted_at is null").
+		Count(&count).Error
+
+	if err != nil {
+		return 0, err
 	}
-	return links, nil
+	return count, nil
+}
+
+func (repo *LinkRepository) GetLinks(limit, offset uint) ([]*Link, int64, error) {
+	var links []*Link
+	query := repo.DataBase.DB.Model(&Link{}).Where("deleted_at is null").Session(&gorm.Session{})
+
+	err := query.
+		Order("links.id desc").
+		Limit(int(limit)).
+		Offset(int(offset)).
+		Find(&links).Error
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	count, err := repo.CountLinks()
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return links, count, nil
+
 }

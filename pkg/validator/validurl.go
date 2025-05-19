@@ -2,13 +2,13 @@ package validator
 
 import (
 	"fmt"
-	"judo/internal/link"
+	typesimpo "judo/internal/types"
 	"net/url"
 )
 
 func ValidUrl(str interface{}) error {
 	switch v := str.(type) {
-	case link.LinkCreateRequest:
+	case typesimpo.LinkCreateRequest:
 		if _, err := url.ParseRequestURI(v.URL); err != nil {
 			return fmt.Errorf("invalid url: %w", err)
 		}

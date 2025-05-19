@@ -3,12 +3,12 @@ package migrations
 import (
 	"gorm.io/gorm"
 	"judo/internal/link"
-	"judo/internal/user"
+	typesimpo "judo/internal/types"
 	"log"
 )
 
 func RunMigrations(db *gorm.DB) {
-	if err := db.AutoMigrate(&link.Link{}, &user.User{}); err != nil {
+	if err := db.AutoMigrate(&link.Link{}, &typesimpo.User{}, &typesimpo.Stat{}); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
 }
