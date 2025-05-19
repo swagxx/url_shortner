@@ -2,10 +2,8 @@ services:
   postgres:
     container_name: postgres_judo
     image: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: Prestigio123
-      PGDATA: /data/postgres
+    env_file:
+      - .env
     volumes:
       - ./postgres-data:/data/postgres
     ports:
