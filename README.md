@@ -17,14 +17,15 @@
 
 1. Клонируем репозиторий:
 
-```bash
-git clone https://github.com/swagxx/url_shortner.git
-cd url_shortner
-
-2. Запуск базы данных через Docker:
+   ```bash
+   git clone https://github.com/swagxx/url_shortner.git
+   cd url_shortner
+   ```
+2. Запускаем базу данных через Docker:
    ```bash
    docker-compose up -d
-3. Запуск приложения:
+   ```
+3. Запускаем приложение:
    ```bash
    go run main.go
    ```
